@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+  <meta charset="UTF-8">
+  <title>Mafia Game Online (Firebase)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="header">
+  <div class="logo">MAFIA ONLINE</div>
+  <nav class="nav">
+    <a href="#hero">Αρχική</a>
+    <a href="#lobby">Lobby</a>
+    <a href="#control">Παιχνίδι</a>
+  </nav>
+</header>
+
+<section id="hero" class="hero">
+  <div class="hero-content">
+    <h1>Mafia Online (Firebase)</h1>
+    <p>Ένας host δημιουργεί παιχνίδι, παίρνει Game Code, οι υπόλοιποι κάνουν join από το κινητό τους.</p>
+  </div>
+</section>
+
+<!-- LOBBY / HOST - JOIN -->
+<main class="section" id="lobby">
+  <h2>Σύνδεση στο Παιχνίδι</h2>
+
+  <div class="control-layout">
+    <!-- Host -->
+    <div class="card">
+      <h3>Δημιουργία Παιχνιδιού (Host)</h3>
+      <p class="hint">Εσύ θα ελέγχεις φάσεις, ρόλους, νύχτα/μέρα.</p>
+      <div style="margin-bottom:0.5rem;">
+        <input type="text" id="hostNameInput" placeholder="Το όνομά σου (Host)">
+      </div>
+      <button id="createGameBtn" class="btn-primary full-width">Δημιούργησε Παιχνίδι</button>
+      <p class="hint" id="createdGameCode" style="margin-top:0.7rem;"></p>
+    </div>
+
+    <!-- Join -->
+    <div class="card">
+      <h3>Συμμετοχή σε Παιχνίδι (Player)</h3>
+      <p class="hint">Βάλε το Game Code που σου είπε ο Host.</p>
+      <div style="margin-bottom:0.4rem;">
+        <input type="text" id="joinGameCodeInput" placeholder="Game Code">
+      </div>
+      <div style="margin-bottom:0.4rem;">
+        <input type="text" id="joinPlayerNameInput" placeholder="Το όνομά σου">
+      </div>
+      <button id="joinGameBtn" class="btn-secondary full-width">Join</button>
+      <p class="hint" id="joinStatus"></p>
+    </div>
+  </div>
+</main>
+
+<!-- GAME CONTROL AREA -->
+<section class="section" id="control">
+  <h2>Lobby & Παιχνίδι</h2>
+
+  <div class="card">
+    <h3>Πληροφορίες Παιχνιδιού</h3>
+    <p id="currentGameInfo" class="hint">Δεν είσαι συνδεδεμένος σε παιχνίδι.</p>
+    <p class="hint" id="hostHint"></p>
+  </div>
+
+  <div class="control-layout" style="margin-top:1.2rem;">
+    <!-- Παίκτες (list from Firebase) -->
+    <div class="card">
+      <h3>Παίκτες στο Lobby</h3>
+      <ul id="playersList" class="players-list"></ul>
+    </div>
+
+    <!-- Ρόλοι (μόνο για Host) -->
+    <div class="card" id="rolesCard" style="display:none;">
+      <h3>Ρύθμιση Ρόλων (Host)</h3>
+      <div class="role-config">
+        <label>Μαφία:
+          <input type="number" id="mafiaCount" min="1" value="2">
+        </label>
+        <label>Γιατροί:
+          <input type="number" id="doctorCount" min="0" value="1">
+        </label>
+        <label>Ντετέκτιβ:
+          <input type="number" id="detectiveCount" min="0" value="1">
+        </label>
+      </div>
+      <button id="assignRolesBtn" class="btn-primary full-width">Τυχαία Ανάθεση Ρόλων</button>
+      <p id="errorMsg" class="error-msg"></p>
+    </div>
+  </div>
+
+  <!-- Πίνακας ρόλων + game engine -->
+  <div class="card assignments-card" id="assignmentsCard" style="display:none;">
+    <h3>Πίνακας Παιχνιδιού</h3>
+    <div class="table-wrapper">
+      <table>
+        <thead>
+        <tr>
+          <th>Παίκτης</th>
+          <th>Κατάσταση</th>
+          <th>Ρόλος (μόνο για σένα)</th>
+        </tr>
+        </thead>
+        <tbody id="assignmentsTableBody"></tbody>
+      </table>
+    </div>
+
+    <div class="game-engine" id="gameEngine" style="display:none;">
+      <h3>Ροή Παιχνιδιού</h3>
+      <p id="phaseLabel" class="phase-label">Φάση: -</p>
+
+      <!-- Νύχτα (Host ελέγχει – αλλά δεν κάνουμε εδώ πλήρη λογική φόνων, μόνο phase change) -->
+      <div id="nightPanel" class="phase-panel">
+        <h4>Νύχτα 🌙</h4>
+        <p class="hint">Η Μαφία αποφασίζει μυστικά. Μπορείς να γράφεις στο chat/log εκτός της εφαρμογής.</p>
+      </div>
+
+      <!-- Μέρα -->
+      <div id="dayPanel" class="phase-panel" style="display:none;">
+        <h4>Μέρα ☀️ – Ψηφοφορία</h4>
+        <p class="hint">Οι παίκτες μιλάνε και ψηφίζουν. Ο Host καταχωρεί το αποτέλεσμα (ποιος πέθανε).</p>
+        <label class="phase-row">
+          Παίκτης που πεθαίνει:
+          <select id="hostKillSelect"></select>
+        </label>
+        <button id="hostKillBtn" class="btn-secondary">Εφάρμοσε θάνατο</button>
+      </div>
+
+      <div class="game-buttons">
+        <button id="startGameBtn" class="btn-primary">Ξεκίνα Παιχνίδι (Host)</button>
+        <button id="nextPhaseBtn" class="btn-secondary">Εναλλαγή Νύχτα / Μέρα (Host)</button>
+      </div>
+
+      <div id="logArea" class="log-area"></div>
+    </div>
+  </div>
+</section>
+
+<!-- Modal: εμφάνιση ρόλου στον παίκτη -->
+<div id="roleModal" class="modal">
+  <div class="modal-content">
+    <span id="closeModal" class="modal-close">&times;</span>
+    <h3 id="modalPlayerName"></h3>
+    <p>Ο ρόλος σου είναι:</p>
+    <p id="modalRoleName" class="modal-role"></p>
+    <button id="modalOkBtn" class="btn-primary full-width">ΟΚ</button>
+  </div>
+</div>
+
+<footer class="footer">
+  Mafia Online – Firebase Edition 🔥
+</footer>
+
+<!-- Firebase SDK (compat) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<script src="script-after.js"></script>
+</body>
+</html>
